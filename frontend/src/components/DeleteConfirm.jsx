@@ -25,7 +25,7 @@ export default function DeleteConfirm({ customer, onConfirm, onClose, loading })
             <h5 className="modal-title mb-2">Delete Customer</h5>
             <p className="text-secondary mb-0">
               Are you sure you want to delete{' '}
-              <strong className="text-light">{customer.full_name}</strong>?{' '}
+              <strong className="text-body-emphasis">{customer.full_name}</strong>?{' '}
               This action cannot be undone.
             </p>
           </div>

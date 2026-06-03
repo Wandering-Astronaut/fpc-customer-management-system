@@ -2,55 +2,77 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { customerApi } from '../services/customers.js'
 
 /**
- * Custom hook that manages customer list state, pagination, and search.
- * Debounces the search query to avoid hammering the API.
+ * Manages customer list, search (debounced), and pagination.
+ * Uses a single fetch per query change to avoid layout flicker.
  */
 export function useCustomers() {
-  const [customers, setCustomers]   = useState([])
-  const [meta, setMeta]             = useState(null)
-  const [loading, setLoading]       = useState(true)
-  const [error, setError]           = useState(null)
-  const [search, setSearch]         = useState('')
-  const [page, setPage]             = useState(1)
-  const debounceRef                 = useRef(null)
+  const [customers, setCustomers] = useState([])
+  const [meta, setMeta] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [fetching, setFetching] = useState(false)
+  const [error, setError] = useState(null)
+  const [search, setSearchInput] = useState('')
+  const [query, setQuery] = useState({ search: '', page: 1 })
+  const debounceRef = useRef(null)
+  const requestIdRef = useRef(0)
 
-  const fetchCustomers = useCallback(async (searchVal, pageVal) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await customerApi.list({ search: searchVal, page: pageVal, perPage: 10 })
-      setCustomers(data.data)
-      setMeta(data.meta)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // Debounce search, reset page to 1 on new query
+  // Debounce search input → update query (reset to page 1)
   useEffect(() => {
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      setPage(1)
-      fetchCustomers(search, 1)
+      setQuery((prev) => ({ search: search.trim(), page: 1 }))
     }, 350)
     return () => clearTimeout(debounceRef.current)
-  }, [search]) // eslint-disable-line
+  }, [search])
+
+  const fetchCustomers = useCallback(async (searchVal, pageVal) => {
+    const id = ++requestIdRef.current
+    setFetching(true)
+    setError(null)
+    try {
+      const data = await customerApi.list({
+        search: searchVal,
+        page: pageVal,
+        perPage: 10,
+      })
+      if (id !== requestIdRef.current) return
+      setCustomers(data.data ?? [])
+      setMeta(data.meta ?? null)
+    } catch (err) {
+      if (id !== requestIdRef.current) return
+      setError(err.message)
+    } finally {
+      if (id !== requestIdRef.current) return
+      setLoading(false)
+      setFetching(false)
+    }
+  }, [])
 
   useEffect(() => {
-    fetchCustomers(search, page)
-  }, [page]) // eslint-disable-line
+    fetchCustomers(query.search, query.page)
+  }, [query, fetchCustomers])
 
-  const refresh = () => fetchCustomers(search, page)
+  const setSearch = (value) => setSearchInput(value)
+
+  const setPage = (pageOrFn) => {
+    setQuery((prev) => ({
+      ...prev,
+      page: typeof pageOrFn === 'function' ? pageOrFn(prev.page) : pageOrFn,
+    }))
+  }
+
+  const refresh = () => fetchCustomers(query.search, query.page)
 
   return {
     customers,
     meta,
     loading,
+    fetching,
     error,
-    search, setSearch,
-    page,   setPage,
+    search,
+    setSearch,
+    page: query.page,
+    setPage,
     refresh,
   }
 }
