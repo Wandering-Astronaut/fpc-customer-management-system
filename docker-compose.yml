@@ -1,0 +1,99 @@
+version: '3.9'
+
+networks:
+  fpc_network:
+    driver: bridge
+
+volumes:
+  db_data:
+  es_data:
+
+services:
+  # ─────────────────────────────────────────────
+  # controller / load balancer (nginx)
+  # ─────────────────────────────────────────────
+  controller:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: fpc_controller
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    networks:
+      - fpc_network
+
+  # ─────────────────────────────────────────────
+  # api  (Laravel)
+  # ─────────────────────────────────────────────
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: fpc_api
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      APP_KEY: ${APP_KEY}
+      APP_DEBUG: "true"
+      APP_URL: http://localhost
+      DB_CONNECTION: pgsql
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-fpc_db}
+      DB_USERNAME: ${DB_USERNAME:-fpc_user}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      ELASTICSEARCH_HOST: http://searcher:9200
+    volumes:
+      - ./api:/var/www/html
+    depends_on:
+      database:
+        condition: service_healthy
+      searcher:
+        condition: service_healthy
+    networks:
+      - fpc_network
+
+  # ─────────────────────────────────────────────
+  # database  (PostgreSQL)
+  # ─────────────────────────────────────────────
+  database:
+    image: postgres:16-alpine
+    container_name: fpc_database
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-fpc_db}
+      POSTGRES_USER: ${DB_USERNAME:-fpc_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-fpc_user} -d ${DB_DATABASE:-fpc_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fpc_network
+
+  # ─────────────────────────────────────────────
+  # searcher  (Elasticsearch)
+  # ─────────────────────────────────────────────
+  searcher:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: fpc_searcher
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    networks:
+      - fpc_network
