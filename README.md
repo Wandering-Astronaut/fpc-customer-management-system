@@ -1,6 +1,20 @@
 # FPC Customer Management System
 
-A full-stack CRUD application that manages customer records, built for the FPC technical exam.
+A full-stack **customer CRUD** application built for the **FPC technical exam** (Docker, Laravel, React, Elasticsearch, PHPUnit).
+
+## Exam requirements — how this project meets them
+
+| Exam requirement | Implementation |
+|------------------|----------------|
+| CRUD + list/view customers | REST API + React `CustomersPage` |
+| Fields: name, unique email, contact | Validation on create/update (see below) |
+| Docker Compose (4 services) | `api`, `controller`, `database`, `searcher` |
+| Laravel + React + Bootstrap | `api/` + `frontend/` |
+| PostgreSQL + Elasticsearch sync (no Scout) | Guzzle HTTP to `searcher` |
+| Search on list by name/email | `GET /api/customers?search=` |
+| PHPUnit tests + README + SOLID | `api/tests/`, this file, layered services |
+
+**Not required:** authentication, RBAC, multi-page routing.
 
 ## Tech Stack
 
@@ -139,9 +153,19 @@ Base URL: `http://localhost/api`
   "first_name": "Juan",
   "last_name": "dela Cruz",
   "email": "juan@example.com",
-  "contact_number": "+63 917 123 4567"
+  "contact_number": "09175550123"
 }
 ```
+
+### Customer field rules
+
+| Field | Rules |
+|-------|--------|
+| First / last name | 2–50 chars; letters, spaces, hyphens; title-cased |
+| Email | Valid format, max 100 chars, unique among **active** customers |
+| Contact | Philippine mobile `09XXXXXXXXX`; UI format `09XX XXX XXX` (e.g. `0917 555 0123`) |
+
+After soft-delete, the same email may be registered again.
 
 ---
 

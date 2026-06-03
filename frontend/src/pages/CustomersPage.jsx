@@ -5,6 +5,7 @@ import { useCustomers } from '../hooks/useCustomers.js'
 import CustomerForm from '../components/CustomerForm.jsx'
 import CustomerDetail from '../components/CustomerDetail.jsx'
 import DeleteConfirm from '../components/DeleteConfirm.jsx'
+import { formatPhilippineMobileDisplay } from '../utils/customerValidation.js'
 
 function initials(c) {
   return `${c.first_name?.[0] ?? ''}${c.last_name?.[0] ?? ''}`.toUpperCase()
@@ -206,7 +207,9 @@ export default function CustomersPage() {
                           </div>
                         </td>
                         <td style={{ color: 'var(--text-secondary)' }}>{c.email}</td>
-                        <td style={{ color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>{c.contact_number}</td>
+                        <td style={{ color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
+                          {formatPhilippineMobileDisplay(c.contact_number)}
+                        </td>
                         <td><span className="badge badge-active">Active</span></td>
                         <td style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
                           {new Date(c.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}

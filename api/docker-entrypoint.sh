@@ -15,6 +15,16 @@ done
 
 echo "✅ PostgreSQL ready"
 
+if [ ! -f vendor/autoload.php ]; then
+  echo "📦 Installing Composer dependencies..."
+  composer install --no-interaction --prefer-dist
+fi
+
+if ! grep -q '^APP_KEY=base64:' .env 2>/dev/null; then
+  echo "🔑 Generating application key..."
+  php artisan key:generate --force
+fi
+
 # Run migrations
 php artisan migrate --force
 

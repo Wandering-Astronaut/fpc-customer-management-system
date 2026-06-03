@@ -25,8 +25,7 @@ RUN docker-php-ext-install \
 COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
 
 # ── OPcache tuning ─────────────────────────────────────────────────────────
-RUN echo "opcache.enable=1\nopcache.memory_consumption=128\nopcache.max_accelerated_files=10000\nopcache.revalidate_freq=0" \
-    >> /usr/local/etc/php/conf.d/opcache.ini
+COPY docker/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 
 # ── Working directory ──────────────────────────────────────────────────────
 WORKDIR /var/www/html

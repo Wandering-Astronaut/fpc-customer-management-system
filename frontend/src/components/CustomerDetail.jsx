@@ -1,4 +1,5 @@
 import React from 'react'
+import { formatPhilippineMobileDisplay } from '../utils/customerValidation.js'
 
 function initials(c) {
   return `${c.first_name?.[0] ?? ''}${c.last_name?.[0] ?? ''}`.toUpperCase()
@@ -33,7 +34,7 @@ export default function CustomerDetail({ customer, onClose, onEdit }) {
                 { label: 'First Name',     value: customer.first_name },
                 { label: 'Last Name',      value: customer.last_name },
                 { label: 'Email',          value: customer.email },
-                { label: 'Contact Number', value: customer.contact_number },
+                { label: 'Contact Number', value: formatPhilippineMobileDisplay(customer.contact_number) },
                 {
                   label: 'Member Since',
                   value: new Date(customer.created_at).toLocaleDateString('en-PH', {

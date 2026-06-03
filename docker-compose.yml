@@ -7,6 +7,7 @@ networks:
 volumes:
   db_data:
   es_data:
+  api_vendor:
 
 services:
   # ─────────────────────────────────────────────
@@ -34,9 +35,10 @@ services:
       dockerfile: Dockerfile
     container_name: fpc_api
     restart: unless-stopped
+    env_file:
+      - api/.env
     environment:
       APP_ENV: local
-      APP_KEY: ${APP_KEY}
       APP_DEBUG: "true"
       APP_URL: http://localhost
       DB_CONNECTION: pgsql
@@ -48,6 +50,7 @@ services:
       ELASTICSEARCH_HOST: http://searcher:9200
     volumes:
       - ./api:/var/www/html
+      - api_vendor:/var/www/html/vendor
     depends_on:
       database:
         condition: service_healthy
