@@ -78,19 +78,51 @@ class ElasticsearchService implements ElasticsearchServiceInterface
     }
 
     /**
-     * Full-text search across name and email fields.
+     * Search names and email (partial / prefix friendly, with light fuzzy matching).
      *
      * @return array<int, array<string, mixed>>
      */
     public function search(string $query): array
     {
+        $term = trim($query);
+        if ($term === '') {
+            return [];
+        }
+
+        $emailWildcard = '*'.$this->escapeWildcard(mb_strtolower($term, 'UTF-8')).'*';
+
         $payload = [
             'query' => [
-                'multi_match' => [
-                    'query'     => $query,
-                    'fields'    => ['first_name', 'last_name', 'full_name', 'email'],
-                    'type'      => 'best_fields',
-                    'fuzziness' => 'AUTO',
+                'bool' => [
+                    'should' => [
+                        // Prefix on name fields, e.g. "joh" → John
+                        [
+                            'multi_match' => [
+                                'query'  => $term,
+                                'fields' => ['first_name', 'last_name', 'full_name'],
+                                'type'   => 'bool_prefix',
+                            ],
+                        ],
+                        // Whole-word + typo tolerance on names
+                        [
+                            'multi_match' => [
+                                'query'     => $term,
+                                'fields'    => ['first_name', 'last_name', 'full_name'],
+                                'type'      => 'best_fields',
+                                'fuzziness' => 'AUTO',
+                            ],
+                        ],
+                        // Substring on email, e.g. "gmail" or "juan@"
+                        [
+                            'wildcard' => [
+                                'email' => [
+                                    'value'            => $emailWildcard,
+                                    'case_insensitive' => true,
+                                ],
+                            ],
+                        ],
+                    ],
+                    'minimum_should_match' => 1,
                 ],
             ],
             'size' => 100,
@@ -112,6 +144,11 @@ class ElasticsearchService implements ElasticsearchServiceInterface
     // ──────────────────────────────────────────────────────────────────────────
     // Private helpers
     // ──────────────────────────────────────────────────────────────────────────
+
+    private function escapeWildcard(string $value): string
+    {
+        return addcslashes($value, '\\*?');
+    }
 
     private function createIndex(): void
     {

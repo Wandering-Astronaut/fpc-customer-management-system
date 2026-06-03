@@ -9,6 +9,7 @@ use App\Services\ElasticsearchService;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
 use Tests\TestCase;
 
@@ -54,6 +55,29 @@ class ElasticsearchServiceTest extends TestCase
 
         $this->assertCount(1, $results);
         $this->assertEquals('Jane', $results[0]['first_name']);
+    }
+
+    public function test_search_uses_partial_friendly_query(): void
+    {
+        $history = [];
+        $mock    = new MockHandler([new Response(200, [], json_encode(['hits' => ['hits' => []]]))]);
+        $stack   = HandlerStack::create($mock);
+        $stack->push(Middleware::history($history));
+        $client  = new Client(['handler' => $stack]);
+        $service = new ElasticsearchService($client);
+
+        $service->search('joh');
+
+        $payload = json_decode((string) $history[0]['request']->getBody(), true);
+        $should  = $payload['query']['bool']['should'] ?? [];
+
+        $this->assertNotEmpty($should);
+        $this->assertTrue(
+            collect($should)->contains(fn (array $clause) => ($clause['multi_match']['type'] ?? null) === 'bool_prefix')
+        );
+        $this->assertTrue(
+            collect($should)->contains(fn (array $clause) => isset($clause['wildcard']['email']))
+        );
     }
 
     public function test_setup_index_creates_index_when_not_found(): void
