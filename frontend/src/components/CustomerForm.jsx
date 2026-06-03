@@ -74,11 +74,10 @@ export default function CustomerForm({ customer, onSubmit, onClose, loading }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     const result = validateCustomerForm(form)
-    if (!result.valid) {
+    if (!result.ok) {
       setErrors(result.errors)
       return
     }
-    setForm(result.data)
     const serverErrors = await onSubmit(result.data)
     if (serverErrors) setErrors(serverErrors)
   }
