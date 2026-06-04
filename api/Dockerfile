@@ -34,7 +34,7 @@ WORKDIR /var/www/html
 COPY . .
 
 # ── Install PHP dependencies ───────────────────────────────────────────────
-RUN composer install --no-interaction --no-dev --optimize-autoloader
+RUN composer install --no-interaction --optimize-autoloader
 
 # ── Permissions ────────────────────────────────────────────────────────────
 RUN chown -R www-data:www-data /var/www/html \

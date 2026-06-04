@@ -7,7 +7,6 @@ networks:
 volumes:
   db_data:
   es_data:
-  api_vendor:
 
 services:
   # ─────────────────────────────────────────────
@@ -50,7 +49,8 @@ services:
       ELASTICSEARCH_HOST: http://searcher:9200
     volumes:
       - ./api:/var/www/html
-      - api_vendor:/var/www/html/vendor
+      - /var/www/html/vendor
+   
     depends_on:
       database:
         condition: service_healthy
