@@ -28,30 +28,33 @@ A full-stack **customer CRUD** application built for the **FPC technical exam** 
 | **Containerisation**           | Docker + Docker Compose       |
 
 ## Architecture Overview
+
+```
 Browser
-│
-▼
+   │
+   ▼
 ┌─────────────┐
 │  frontend   │  React 19 + Vite (port 3000, containerised)
 │  (port 3000)│  Proxies /api requests to controller
 └──────┬──────┘
-│ HTTP proxy
-▼
+       │ HTTP proxy
+       ▼
 ┌─────────────┐
 │  controller │  Nginx – forwards requests to the API via FastCGI
 │  (port 80)  │  Acts as a load balancer (scale api replicas freely)
 └──────┬──────┘
-│ FastCGI
-▼
+       │ FastCGI
+       ▼
 ┌──────────────┐       ┌──────────────┐
 │     api      │──────▶│   database   │  PostgreSQL
 │  (Laravel)   │       │  (port 5432) │
 └──────┬───────┘       └──────────────┘
-│ HTTP (Guzzle)
-▼
+       │ HTTP (Guzzle)
+       ▼
 ┌──────────────┐
 │   searcher   │  Elasticsearch (port 9200, internal only)
 └──────────────┘
+```
 
 > **Note:** Elasticsearch is only accessible within the Docker network. The Laravel API communicates with it using Guzzle — **no Laravel Scout** is used.
 
@@ -67,22 +70,35 @@ Browser
 ## Quick Start
 
 ### 1 — Clone the repository
+
+```
 git clone <your-repo-url>
 cd fpc-customer-app
+```
 
 ### 2 — Configure environment
+
+```
 cp .env.example .env
 cp api/.env.example api/.env
+```
 
 Generate an application key (requires PHP locally, **or** skip and let the container do it):
-Option A – local PHP
+
+```
+# Option A – local PHP
 php -r "echo 'base64:'.base64_encode(random_bytes(32)).PHP_EOL;"
-Paste the output as APP_KEY= in both .env and api/.env
-Option B – Docker (run after step 3)
+# Paste the output as APP_KEY= in both .env and api/.env
+
+# Option B – Docker (run after step 3)
 docker compose exec api php artisan key:generate
+```
 
 ### 3 — Build and start all services
+
+```
 docker compose up --build -d
+```
 
 This will:
 
@@ -96,16 +112,22 @@ This will:
 > **First boot may take 2–3 minutes** while Elasticsearch initialises.
 
 ### 4 — Verify services are running
+
+```
 docker compose ps
+```
 
 All five services should show `Up` / `healthy`.
-Quick API health check
+
+```
+# Quick API health check
 curl http://localhost/
-→ {"service":"FPC Customer API","status":"OK"}
+# → {"service":"FPC Customer API","status":"OK"}
+```
 
 ### 5 — Open the app
 
-Open <http://localhost:3000> in your browser.
+Open http://localhost:3000 in your browser.
 
 > The Vite dev server proxies all `/api` requests to `http://localhost:80` (Nginx → Laravel).
 
@@ -138,10 +160,10 @@ Base URL: `http://localhost/api`
 
 ### Customer field rules
 
-| Field             | Rules                                                                             |
-| ----------------- | --------------------------------------------------------------------------------- |
-| First / last name | 2–50 chars; letters, spaces, hyphens; title-cased                                 |
-| Email             | Valid format, max 100 chars, unique among **active** customers                    |
+| Field             | Rules                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| First / last name | 2–50 chars; letters, spaces, hyphens; title-cased                                  |
+| Email             | Valid format, max 100 chars, unique among **active** customers                     |
 | Contact           | Philippine mobile `09XXXXXXXXX`; UI format `09XX XXX XXXX` (e.g. `0917 555 0123`) |
 
 After soft-delete, the same email may be registered again.
@@ -151,12 +173,18 @@ After soft-delete, the same email may be registered again.
 ## Running Tests
 
 Tests run inside the container (SQLite in-memory DB, Elasticsearch is mocked):
+
+```
 docker compose exec api php artisan test
+```
 
 Or from the `api/` directory with a local PHP install:
+
+```
 cd api
 composer install
 php artisan test
+```
 
 Test suites:
 
@@ -166,6 +194,8 @@ Test suites:
 ---
 
 ## Project Structure
+
+```
 fpc-customer-app/
 ├── docker-compose.yml          # Orchestrates all 5 services
 ├── .env.example
@@ -200,14 +230,15 @@ fpc-customer-app/
 │           ├── CustomerServiceTest.php
 │           └── ElasticsearchServiceTest.php
 └── frontend/                   # React 19 + Vite + Bootstrap
-├── Dockerfile
-├── index.html
-├── vite.config.js
-└── src/
-├── services/           # Axios HTTP client (calls Laravel API at /api)
-├── components/         # CustomerForm, CustomerDetail, DeleteConfirm
-├── hooks/              # useCustomers (debounced search + pagination)
-└── pages/              # CustomersPage (main view)
+    ├── Dockerfile
+    ├── index.html
+    ├── vite.config.js
+    └── src/
+        ├── services/           # Axios HTTP client (calls Laravel API at /api)
+        ├── components/         # CustomerForm, CustomerDetail, DeleteConfirm
+        ├── hooks/              # useCustomers (debounced search + pagination)
+        └── pages/              # CustomersPage (main view)
+```
 
 ---
 
