@@ -100,3 +100,19 @@ services:
       retries: 10
     networks:
       - fpc_network
+
+# ─────────────────────────────────────────────
+  # frontend (React + Vite)
+  # ─────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fpc_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - controller
+    networks:
+      - fpc_network
